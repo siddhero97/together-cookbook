@@ -3,21 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Podcast</title>
+    <title>Text & PDF to Speech Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .conversion-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .audio-player {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            color: #28a745;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>Convert PDF to Podcast</h1>
-    <form action="/convert" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".pdf" required>
-        <button type="submit">Convert</button>
-    </form>
+    <div class="container">
+        <h1>Text & PDF to Speech Converter</h1>
 
-    {% if audio_file %}
-        <h2>Your Audio:</h2>
-        <audio controls>
-            <source src="{{ url_for('serve_audio', filename=audio_file) }}" type="audio/mp3">
-            Your browser does not support the audio element.
-        </audio>
-    {% endif %}
+        <!-- PDF to Speech Section -->
+        <div class="conversion-section">
+            <h2>PDF to Speech</h2>
+            <form id="pdf-form" action="/convert-pdf" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".pdf" required>
+                <button type="submit">Convert PDF</button>
+            </form>
+            <div id="pdf-error" class="error-message"></div>
+            <div id="pdf-success" class="success-message"></div>
+        </div>
+
+        <!-- Text to Speech Section -->
+        <div class="conversion-section">
+            <h2>Text to Speech</h2>
+            <form id="text-form">
+                <textarea name="text" placeholder="Enter your text here..." required></textarea>
+                <button type="submit">Convert Text</button>
+            </form>
+            <div id="text-error" class="error-message"></div>
+            <div id="text-success" class="success-message"></div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="loading">Converting... Please wait...</div>
+
+        <!-- Audio player -->
+        {% if audio_file %}
+        <div class="audio-player">
+            <h3>Generated Audio:</h3>
+            <audio controls style="width: 100%">
+                <source src="{{ url_for('serve_audio', filename=audio_file) }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.getElementById('text-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const textarea = this.querySelector('textarea');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('text-error');
+            const successDiv = document.getElementById('text-success');
+
+            // Reset messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Show loading
+            loadingDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/convert-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: textarea.value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success
+                    successDiv.textContent = 'Text converted successfully!';
+                    successDiv.style.display = 'block';
+                    // Reload the page to show the audio player
+                    window.location.reload();
+                } else {
+                    // Error
+                    errorDiv.textContent = data.error || 'An error occurred during conversion';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'An error occurred during the request';
+                errorDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+
+        // Add loading indicator for PDF form
+        document.getElementById('pdf-form').addEventListener('submit', function(e) {
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('pdf-error');
+            
+            // Reset error message
+            errorDiv.style.display = 'none';
+            
+            // Validate file
+            const fileInput = this.querySelector('input[type="file"]');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please select a PDF file';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please select a valid PDF file';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            loadingDiv.style.display = 'block';
+        });
+    </script>
 </body>
 </html>
