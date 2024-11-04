@@ -82,18 +82,28 @@ def convert_text():
 
 def convert_text_to_speech(text):
     """Helper function to convert text to speech using AWS Polly"""
-    response = polly_client.synthesize_speech(
-        Text=text,
-        OutputFormat='mp3',
-        VoiceId='Joanna'  # Choose the voice you prefer
-    )
-    
-    # Save the audio stream to a file in the audio directory
-    audio_filename = os.path.join(AUDIO_DIR, f"{os.urandom(16).hex()}.mp3")
-    with open(audio_filename, 'wb') as audio_file:
-        audio_file.write(response['AudioStream'].read())
-    
-    return audio_filename
+    try:
+        response = polly_client.synthesize_speech(
+            Engine='neural',
+            Text=text,
+            OutputFormat='mp3',
+            VoiceId='Joanna',  # Neural voices available: Joanna, Matthew, Liam, etc.
+            TextType='text'
+        )
+        
+        # Generate a unique filename
+        audio_filename = os.path.join(AUDIO_DIR, f"{os.urandom(16).hex()}.mp3")
+        
+        # Save the audio stream directly to a file
+        if "AudioStream" in response:
+            with open(audio_filename, 'wb') as audio_file:
+                audio_file.write(response['AudioStream'].read())
+            return audio_filename
+        else:
+            raise Exception("No AudioStream in response")
+            
+    except Exception as e:
+        raise Exception(f"Error in text-to-speech conversion: {str(e)}")
 
 def extract_text_from_pdf(pdf_file):
     """Helper function to extract text from PDF"""
