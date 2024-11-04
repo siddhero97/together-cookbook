@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Podcast</title>
+</head>
+<body>
+    <h1>Convert PDF to Podcast</h1>
+    <form action="/convert" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".pdf" required>
+        <button type="submit">Convert</button>
+    </form>
+
+    {% if audio_file %}
+        <h2>Your Audio:</h2>
+        <audio controls>
+            <source src="{{ url_for('serve_audio', filename=audio_file) }}" type="audio/mp3">
+            Your browser does not support the audio element.
+        </audio>
+    {% endif %}
+</body>
+</html>
