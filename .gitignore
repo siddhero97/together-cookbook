@@ -57,3 +57,5 @@ test-results/
 .env.local
 .env.production
 .env.development
+
+audio_files/
